@@ -268,7 +268,6 @@ grant execute on function public.auth_users_diag(text) to anon, authenticated;
 -- Admin roli faqat Supabase SQL Editor / service_role kabi ishonchli kanal
 -- orqali beriladi. Authenticated foydalanuvchi o'z rolini o'zgartira olmaydi.
 -- -----------------------------------------------------------------------------
-revoke all on function public.fix_my_account(text) from public, anon, authenticated;
 drop function if exists public.fix_my_account(text);
 
 -- Excel import / audit jadvallari (migration_user_management.sql) yaratgan
