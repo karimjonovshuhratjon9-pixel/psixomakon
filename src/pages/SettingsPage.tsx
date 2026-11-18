@@ -6,7 +6,6 @@ import { supabase } from "../lib/supabase";
 import { updateIdentity } from "../lib/createAccount";
 import { uzError } from "../lib/errors";
 import { Badge, Card, ErrorBox, PageHeader, cn } from "../components/ui";
-import { AccountFix } from "../components/AccountFix";
 import { initials } from "../lib/api";
 
 const ROLE: Record<string, string> = {
@@ -73,7 +72,6 @@ export function SettingsPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div className="space-y-5">
-          {profile.role !== "admin" && <AccountFix />}
           <Card className="p-5">
             <h2 className="mb-4 flex items-center gap-2 font-semibold text-forest-950">
               <User size={16} className="text-forest-600" /> Profil
