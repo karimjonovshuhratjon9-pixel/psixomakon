@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   RUHIYAT — Dizayn tizimi (Light / Dark)
+   Ranglar CSS o'zgaruvchilari orqali boshqariladi, Tailwind ularga
+   "rgb(var(--x) / <alpha-value>)" bilan ulanadi (tailwind.config.js).
+   Shu sababli `bg-cream`, `text-ink/60`, `ring-ink/10` kabi mavjud
+   klasslar ikkala rejimda ham to'g'ri ishlaydi — hech bir sahifani
+   qayta yozish shart emas.
+   ============================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* Sirt (background / surface) */
+  --c-cream: 251 250 247; /* sahifa foni */
+  --c-sand: 244 241 234; /* ikkilamchi fon */
+  --c-surface: 255 255 255; /* kartochka / input */
+  --c-surface-2: 247 249 246; /* ichki bloklar */
+  --c-ink: 22 33 29; /* asosiy matn */
+
+  /* Yumshoq yashil (accent surface) */
+  --c-forest-50: 242 247 244;
+  --c-forest-100: 226 239 231;
+  --c-forest-200: 197 223 208;
+  --c-forest-300: 155 199 176;
+  --c-forest-400: 106 169 140;
+  --c-forest-500: 69 139 109;
+  --c-forest-600: 50 111 86;
+  --c-forest-700: 40 89 71;
+  --c-forest-800: 34 71 58;
+  --c-forest-900: 28 59 49;
+  --c-forest-950: 14 33 27;
+
+  --c-sage-50: 246 247 243;
+  --c-sage-100: 236 238 229;
+  --c-sage-200: 217 221 203;
+  --c-sage-300: 191 199 168;
+  --c-sage-400: 164 174 134;
+  --c-sage-500: 139 150 108;
+
+  /* Grafiklar */
+  --chart-grid: #e2efe7;
+  --chart-axis: #4b5b54;
+  --chart-muted: #9aa8a1;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e8e5dd;
+  --scrollbar: #d9ddcb;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --c-cream: 11 18 16; /* #0b1210 */
+  --c-sand: 17 26 23;
+  --c-surface: 20 31 27;
+  --c-surface-2: 25 38 33;
+  --c-ink: 232 238 234;
+
+  --c-forest-50: 24 38 32;
+  --c-forest-100: 31 49 41;
+  --c-forest-200: 41 63 53;
+  --c-forest-300: 58 88 73;
+  --c-forest-400: 84 131 107;
+  --c-forest-500: 118 173 143;
+  --c-forest-600: 143 199 168;
+  --c-forest-700: 168 216 189;
+  --c-forest-800: 196 231 211;
+  --c-forest-900: 219 242 228;
+  --c-forest-950: 240 250 244;
+
+  --c-sage-50: 23 35 30;
+  --c-sage-100: 31 46 40;
+  --c-sage-200: 47 66 57;
+  --c-sage-300: 70 96 82;
+  --c-sage-400: 126 156 131;
+  --c-sage-500: 160 186 150;
+
+  --chart-grid: #24352e;
+  --chart-axis: #b9c9c0;
+  --chart-muted: #7d9086;
+  --chart-tooltip-bg: #141f1b;
+  --chart-tooltip-border: #2b3d35;
+  --scrollbar: #2b3d35;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+  }
+  ::selection {
+    @apply bg-forest-200 text-forest-950;
+  }
+  input,
+  select,
+  textarea {
+    @apply outline-none;
+  }
+  option {
+    @apply bg-surface text-ink;
+  }
+  /* subtle scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--scrollbar)) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgb(var(--scrollbar));
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  /* Klaviatura bilan navigatsiya uchun ko'rinadigan fokus */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-forest-500;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl bg-surface shadow-soft ring-1 ring-ink/[0.06];
+  }
+  .field {
+    @apply w-full rounded-2xl border border-ink/10 bg-surface px-4 py-2.5 text-sm text-ink placeholder:text-ink/35 transition focus:border-forest-400 focus:ring-4 focus:ring-forest-100 disabled:opacity-60;
+  }
+  .label {
+    @apply mb-1.5 block text-[13px] font-semibold text-ink/70;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
+  }
+  /* Birlamchi tugma: light da to'q yashil fon + oq matn.
+     Dark da forest-800 och (mint) tusga o'tadi — shuning uchun matnini
+     alohida .btn-primary orqali qoraytirish kerak. */
+  .btn-primary {
+    @apply btn bg-forest-800 text-white shadow-soft hover:bg-forest-900 dark:text-forest-50;
+  }
+  .btn-secondary {
+    @apply btn bg-surface text-forest-900 ring-1 ring-ink/10 hover:bg-forest-50 dark:text-forest-900;
+  }
+  .btn-ghost {
+    @apply btn text-ink/70 hover:bg-ink/5;
+  }
+  .btn-danger {
+    @apply btn bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-500/30 dark:hover:bg-rose-500/25;
+  }
+  .btn-icon {
+    @apply grid h-9 w-9 place-items-center rounded-xl text-ink/55 transition hover:bg-ink/5 hover:text-ink;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold;
+  }
+  .table-head {
+    @apply px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-ink/45;
+  }
+  .table-cell {
+    @apply px-5 py-3.5 text-sm text-ink/80;
+  }
+  .section-title {
+    @apply text-[11px] font-bold uppercase tracking-wider text-ink/40;
+  }
+  /*
+   * HAR DOIM TO‘Q fon (mavzuga qarab o‘zgarmaydi).
+   * `bg-forest-950` dark rejimda deyarli oq bo‘ladi — ustida `text-white`
+   * ishlatilgan bloklar unda ko‘rinmay qoladi. Bunday joylarda shu klass
+   * ishlatilishi shart.
+   */
+  .bg-solid-dark {
+    background-color: #0e211b;
+  }
+  .bg-solid-dark-2 {
+    background-color: #16211d;
+  }
+}
+
+/* Login sahifasidagi brend paneli — har ikki rejimda ham bir xil qorong'i */
+.brand-panel {
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgb(40 89 71) 0%, transparent 55%),
+    radial-gradient(120% 120% at 0% 100%, rgb(34 71 58) 0%, transparent 60%),
+    #0e211b;
+}
+
+.bg-grain {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.09) 1px,
+    transparent 1px
+  );
+  background-size: 18px 18px;
+}

@@ -1,0 +1,10 @@
+# Supabase CLI konfiguratsiyasi
+# `supabase functions deploy admin-create-user --project-ref <ref>` buyrug'i
+# ishlashi uchun minimal sozlamalar.
+
+project_id = "psyxomakon"
+
+[functions.admin-create-user]
+# verify_jwt = true — anonim (Authorization siz) chaqiruvlar Supabase gateway
+# darajasida rad etiladi. Faqat tizimga kirgan admin/psixolog JWT'si o'tadi.
+verify_jwt = true
