@@ -15,8 +15,7 @@ create extension if not exists "pgcrypto";
 -- -----------------------------------------------------------------------------
 do $$ begin
   create type public.user_role as enum ('admin', 'psychologist', 'student');
-exception when duplicate_object then null; end $$;
-DROP FUNCTION
+exception when duplicate_object then null; end $;
 do $$ begin
   create type public.test_kind as enum ('standard', 'psych');
 exception when duplicate_object then null; end $$;
@@ -280,13 +279,22 @@ alter table public.answers       enable row level security;
 -- Re-run xavfsizligi: shu fayldan KEYIN ishlaydigan migratsiyalar yaratadigan
 -- siyosatlar ham oldindan o'chiriladi — schema.sql ni istalgan paytda qayta
 -- ishga tushirish xavfsiz bo'lsin.
-drop policy if exists deleted_profiles_admin on public.deleted_profiles;
-drop policy if exists audit_log_admin on public.audit_log;
-drop policy if exists audit_log_no_client on public.audit_log;
-drop policy if exists user_imports_select on public.user_imports;
-drop policy if exists user_imports_write on public.user_imports;
-drop policy if exists user_imports_update on public.user_imports;
-drop policy if exists user_imports_delete on public.user_imports;
+do $
+begin
+  if to_regclass('public.deleted_profiles') is not null then
+    execute 'drop policy if exists deleted_profiles_admin on public.deleted_profiles';
+  end if;
+  if to_regclass('public.audit_log') is not null then
+    execute 'drop policy if exists audit_log_admin on public.audit_log';
+    execute 'drop policy if exists audit_log_no_client on public.audit_log';
+  end if;
+  if to_regclass('public.user_imports') is not null then
+    execute 'drop policy if exists user_imports_select on public.user_imports';
+    execute 'drop policy if exists user_imports_write on public.user_imports';
+    execute 'drop policy if exists user_imports_update on public.user_imports';
+    execute 'drop policy if exists user_imports_delete on public.user_imports';
+  end if;
+end $;
 
 -- ---------- profiles ----------
 -- Re-run xavfsizligi: har bir siyosatning barcha eski nomi o'chiriladi.
