@@ -214,7 +214,7 @@ returns trigger
 language plpgsql
 security invoker
 set search_path = public
-as $
+as $$
 begin
   if current_setting('ruhiyat.scoring', true) = 'on' then
     return new;
@@ -239,7 +239,7 @@ begin
       using errcode = '42501';
   end if;
   return new;
-end $;
+end $$;
 
 -- -- 5. ANSWERS — javob saqlash (upsert) faqat aktiv urinishda
 -- -----------------------------------------------------------------------------
