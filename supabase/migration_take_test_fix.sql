@@ -79,6 +79,8 @@ grant execute on function public.attempt_results(uuid) to authenticated;
 -- -----------------------------------------------------------------------------
 drop policy if exists attempts_select on public.attempts;
 drop policy if exists attempts_insert on public.attempts;
+drop policy if exists attempts_insert_student on public.attempts;
+drop policy if exists attempts_insert_staff on public.attempts;
 
 create or replace function public.assigned_to_me(p_assignment uuid)
 returns boolean
@@ -206,7 +208,40 @@ create policy attempts_update_student on public.attempts
   );
 
 -- -----------------------------------------------------------------------------
--- 5. ANSWERS — javob saqlash (upsert) faqat aktiv urinishda
+-- Mavjud bazalarda ham urinish identifikatorlarini o'zgartirishni bloklash.
+create or replace function public.attempts_guard()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_setting('ruhiyat.scoring', true) = 'on' then
+    return new;
+  end if;
+  if public.is_admin() then
+    return new;
+  end if;
+  if old.status = 'in_progress' and new.status = 'submitted' then
+    raise exception 'not_allowed: testni faqat score_attempt() funksiyasi yakunlaydi'
+      using errcode = '42501';
+  end if;
+  if new.assignment_id is distinct from old.assignment_id
+     or new.test_id is distinct from old.test_id
+     or new.student_id is distinct from old.student_id
+     or new.total_score is distinct from old.total_score
+     or new.percent is distinct from old.percent
+     or new.max_score is distinct from old.max_score
+     or new.dimension_result is distinct from old.dimension_result
+     or new.started_at is distinct from old.started_at
+     or new.deadline_at is distinct from old.deadline_at then
+    raise exception 'not_allowed: urinish identifikatori va natijalar serverda boshqariladi'
+      using errcode = '42501';
+  end if;
+  return new;
+end $$;
+
+-- -- 5. ANSWERS — javob saqlash (upsert) faqat aktiv urinishda
 -- -----------------------------------------------------------------------------
 drop policy if exists answers_select on public.answers;
 create policy answers_select on public.answers
@@ -233,6 +268,14 @@ create policy answers_write on public.answers
       where at.id = answers.attempt_id
         and at.student_id = auth.uid()
         and at.status = 'in_progress'
+        and exists (
+          select 1 from public.questions q
+          where q.id = answers.question_id and q.test_id = at.test_id
+            and (answers.option_id is null or exists (
+              select 1 from public.options o
+              where o.id = answers.option_id and o.question_id = q.id
+            ))
+        )
     )
   )
   with check (
@@ -241,6 +284,14 @@ create policy answers_write on public.answers
       where at.id = answers.attempt_id
         and at.student_id = auth.uid()
         and at.status = 'in_progress'
+        and exists (
+          select 1 from public.questions q
+          where q.id = answers.question_id and q.test_id = at.test_id
+            and (answers.option_id is null or exists (
+              select 1 from public.options o
+              where o.id = answers.option_id and o.question_id = q.id
+            ))
+        )
     )
   );
 
@@ -332,6 +383,15 @@ begin
       'message', 'Test topilmadi (o''chirilgan bo''lishi mumkin).');
   end if;
 
+  if not t.is_active then
+    return jsonb_build_object('ok', false, 'code', 'test_inactive',
+      'message', 'Bu test hozir faol emas.');
+  end if;
+  if a.due_at is not null and a.due_at < now() then
+    return jsonb_build_object('ok', false, 'code', 'assignment_expired',
+      'message', 'Bu testni bajarish muddati tugagan.');
+  end if;
+
   -- Mavjud urinish bo'lsa — o'shani qaytaramiz (davom ettirish)
   select * into at from public.attempts
   where assignment_id = a.id and student_id = me.id
@@ -377,3 +437,37 @@ end $$;
 
 revoke all on function public.start_attempt(uuid) from public;
 grant execute on function public.start_attempt(uuid) to authenticated;
+
+
+-- Natijalar ro'yxati: ball maydonlari faqat admin va tegishli psixologga.
+create or replace function public.get_staff_results(p_test_id uuid default null)
+returns table(
+  id uuid, student_id uuid, test_id uuid, status public.attempt_status,
+  percent numeric, total_score numeric, max_score numeric,
+  submitted_at timestamptz, auto_submitted boolean, dimension_result jsonb,
+  group_id uuid, student_full_name text, student_login text,
+  test_title text, test_kind public.test_kind, test_category text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select at.id, at.student_id, at.test_id, at.status,
+         at.percent, at.total_score, at.max_score, at.submitted_at,
+         at.auto_submitted, at.dimension_result, a.group_id,
+         p.full_name, p.login, t.title, t.kind, t.category
+  from public.attempts at
+  join public.assignments a on a.id = at.assignment_id
+  join public.profiles p on p.id = at.student_id
+  join public.tests t on t.id = at.test_id
+  where at.status = 'submitted'
+    and (p_test_id is null or at.test_id = p_test_id)
+    and (
+      public.is_admin()
+      or (public.is_psych() and public.teacher_can_view_results(at.student_id))
+    );
+$$;
+revoke all on function public.get_staff_results(uuid) from public;
+grant execute on function public.get_staff_results(uuid) to authenticated;
+

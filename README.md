@@ -51,7 +51,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 | 2   | `supabase/seed.sql`                        | 3 ta mavjud namuna test (ixtiyoriy, lekin tavsiya etiladi)                                      |
 | 2b  | `supabase/migration_student_login_fix.sql` | **Majburiy**: login (username) → email RPC, `profiles` RLS tuzatishi, natija ustunlarini yopish |
 | 2c  | `supabase/migration_user_management.sql`  | **Majburiy**: `profiles.email`, `audit_log`, `deleted_profiles`, import jadvallari |
-| 2d  | `supabase/migration_psyxomakon_fix.sql`  | **Majburiy**: RLS funksiyalarining `EXECUTE` huquqi, `profiles_guard`, `repair_my_profile()`, `auth_users_diag()` |
+| 2d  | `supabase/migration_psyxomakon_fix.sql`  | **Majburiy**: RLS funksiyalari, xavfsiz profil tiklash, `auth_users_diag()`, staff-only test ballari RPC |
+| 2e  | `supabase/migration_take_test_fix.sql` | **Majburiy**: test boshlash/davom ettirish, qat'iy urinish/javob RLS va staff-only natijalar RPC |
 | 3   | `supabase/create_admin.sql`                | Birinchi bosh adminni yaratish (3-bo‘limga qarang). Fayldagi emailni o‘zingiznikiga moslang             |
 
 > **Muhim:** `schema.sql` — idempotent. Har bir siyosatdan oldin `drop policy if exists`

@@ -28,14 +28,29 @@ export async function fetchFullTest(testId: string): Promise<FullTest> {
       .in("question_id", qIds)
       .order("position");
     if (oErr) throw oErr;
-    options = ((opts ?? []) as Partial<Option>[]).map((o) => ({
-      id: o.id!,
-      question_id: o.question_id!,
-      position: o.position ?? 0,
-      text: o.text ?? "",
-      score: 0,
-      dim_scores: {},
-    }));
+    const { data: scoringRows, error: scoringError } = await supabase.rpc(
+      "get_test_scoring",
+      { p_test_id: testId },
+    );
+    if (scoringError) throw scoringError;
+    const scoringByOption = new Map(
+      ((scoringRows ?? []) as {
+        option_id: string;
+        score: number;
+        dim_scores: Record<string, number>;
+      }[]).map((row) => [row.option_id, row]),
+    );
+    options = ((opts ?? []) as Partial<Option>[]).map((o) => {
+      const scoring = scoringByOption.get(o.id!);
+      return {
+        id: o.id!,
+        question_id: o.question_id!,
+        position: o.position ?? 0,
+        text: o.text ?? "",
+        score: scoring?.score ?? 0,
+        dim_scores: scoring?.dim_scores ?? {},
+      };
+    });
   }
 
   return {

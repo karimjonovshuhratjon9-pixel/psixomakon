@@ -15,8 +15,7 @@ create extension if not exists "pgcrypto";
 -- -----------------------------------------------------------------------------
 do $$ begin
   create type public.user_role as enum ('admin', 'psychologist', 'student');
-exception when duplicate_object then null; end $$;
-DROP FUNCTION
+exception when duplicate_object then null; end $;
 do $$ begin
   create type public.test_kind as enum ('standard', 'psych');
 exception when duplicate_object then null; end $$;
@@ -240,6 +239,26 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 
+-- Staff uchun test ball kalitlari. O'quvchiga hech qachon ball ustunlari qaytmaydi.
+create or replace function public.get_test_scoring(p_test_id uuid)
+returns table(question_id uuid, option_id uuid, score integer, dim_scores jsonb)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select q.id, o.id, o.score, o.dim_scores
+  from public.questions q
+  join public.options o on o.question_id = q.id
+  where q.test_id = p_test_id
+    and (
+      public.is_admin()
+      or (public.is_psych() and public.can_manage_test(p_test_id))
+    );
+$$;
+revoke all on function public.get_test_scoring(uuid) from public;
+grant execute on function public.get_test_scoring(uuid) to authenticated;
+
 -- -----------------------------------------------------------------------------
 -- 4. AUTH → PROFILES SYNC
 --    Ochiq ro'yxatdan o'tish o'chirilgan (README ga qarang), lekin trigger
@@ -280,13 +299,22 @@ alter table public.answers       enable row level security;
 -- Re-run xavfsizligi: shu fayldan KEYIN ishlaydigan migratsiyalar yaratadigan
 -- siyosatlar ham oldindan o'chiriladi — schema.sql ni istalgan paytda qayta
 -- ishga tushirish xavfsiz bo'lsin.
-drop policy if exists deleted_profiles_admin on public.deleted_profiles;
-drop policy if exists audit_log_admin on public.audit_log;
-drop policy if exists audit_log_no_client on public.audit_log;
-drop policy if exists user_imports_select on public.user_imports;
-drop policy if exists user_imports_write on public.user_imports;
-drop policy if exists user_imports_update on public.user_imports;
-drop policy if exists user_imports_delete on public.user_imports;
+do $
+begin
+  if to_regclass('public.deleted_profiles') is not null then
+    execute 'drop policy if exists deleted_profiles_admin on public.deleted_profiles';
+  end if;
+  if to_regclass('public.audit_log') is not null then
+    execute 'drop policy if exists audit_log_admin on public.audit_log';
+    execute 'drop policy if exists audit_log_no_client on public.audit_log';
+  end if;
+  if to_regclass('public.user_imports') is not null then
+    execute 'drop policy if exists user_imports_select on public.user_imports';
+    execute 'drop policy if exists user_imports_write on public.user_imports';
+    execute 'drop policy if exists user_imports_update on public.user_imports';
+    execute 'drop policy if exists user_imports_delete on public.user_imports';
+  end if;
+end $;
 
 -- ---------- profiles ----------
 -- Re-run xavfsizligi: har bir siyosatning barcha eski nomi o'chiriladi.
@@ -414,7 +442,7 @@ create policy questions_write on public.questions for all to authenticated
 -- grant orqali ochiladi; RLS esa qatorlarga ruxsat beradi.
 revoke select on public.options from authenticated, anon;
 -- Admin/psixolog uchun to'liq o'qish (balllar tahrirlash uchun kerak)
-grant select (id, question_id, position, text, score, dim_scores) on public.options to authenticated;
+grant select (id, question_id, position, text) on public.options to authenticated;
 
 drop policy if exists options_select on public.options;
 drop policy if exists options_write on public.options;
@@ -519,15 +547,17 @@ begin
   if current_setting('ruhiyat.scoring', true) = 'on' then
     return new;
   end if;
-  if public.is_admin()
-     or (public.is_psych() and public.psych_has_student(old.student_id)) then
+  if public.is_admin() then
     return new;
   end if;
   if old.status = 'in_progress' and new.status = 'submitted' then
     raise exception 'not_allowed: testni faqat score_attempt() funksiyasi yakunlaydi'
       using errcode = '42501';
   end if;
-  if new.total_score is distinct from old.total_score
+  if new.assignment_id is distinct from old.assignment_id
+     or new.test_id is distinct from old.test_id
+     or new.student_id is distinct from old.student_id
+     or new.total_score is distinct from old.total_score
      or new.percent is distinct from old.percent
      or new.max_score is distinct from old.max_score
      or new.dimension_result is distinct from old.dimension_result
@@ -688,7 +718,7 @@ grant select, insert, update, delete on public.answers       to authenticated;
 -- "permission denied for table options" olardi.
 -- RLS qatorlarni baribir cheklaydi.
 revoke select on public.options from authenticated, anon;
-grant select (id, question_id, position, text, score, dim_scores)
+grant select (id, question_id, position, text)
   on public.options to authenticated;
 
 
@@ -704,13 +734,7 @@ grant select (
   started_at, deadline_at, submitted_at, auto_submitted, updated_at
 ) on public.attempts to authenticated;
 
--- O'quvchilar faqat o'zingi urinishini yaratishi va status='in_progress' yangilashi mumkin
-create policy attempts_insert_student on public.attempts for insert to authenticated
-  with check (public.is_student_ok() and student_id = auth.uid());
-
--- Admin/psixolog barcha urinishlarni boshqarishi mumkin
-create policy attempts_insert_staff on public.attempts for insert to authenticated
-  with check (public.is_admin() or (public.is_psych() and public.psych_has_student(student_id)));
+-- INSERT faqat yuqoridagi qat'iy attempts_insert siyosati orqali.
 
 -- O'quvchilar faqat o'zingi holatini yangilashi mumkin (faqat in_progress)
 create policy attempts_update_student on public.attempts for update to authenticated
@@ -738,7 +762,6 @@ grant execute on function public.email_for_login(text)        to anon, authentic
 
 -- Staff (admin/psixolog) natija ustunlarini o'qishi mumkin — ustun GRANT yoki
 -- `to authenticated` bo'lgani uchun bu qator RLS bilan bir xil ishlaydi.
-grant select (total_score, max_score, percent, dimension_result)
-  on public.attempts to authenticated;
+-- Natija ustunlari faqat get_staff_results() RPC orqali beriladi.
 
 grant execute on function public.score_attempt(uuid) to authenticated;

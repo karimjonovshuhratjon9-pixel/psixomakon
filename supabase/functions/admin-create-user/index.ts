@@ -76,8 +76,7 @@ function notAllowed(reason: string, email: string | null) {
   const who = email ? ` Joriy akkaunt: ${email}.` : "";
   return fail(
     "not_allowed",
-    `${reason}${who} Rolni / blok holatini tuzatish: Sozlamalar → " +
-      "«Akkauntimni tuzatish», yoki SQL: select * from public.fix_my_account('admin');`,
+    `${reason}${who} Agar rol noto'g'ri bo'lsa, bosh administrator Supabase Dashboard → SQL Editor orqali create_admin.sql ni tekshirsin.`,
     403,
   );
 }
