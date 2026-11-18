@@ -406,7 +406,7 @@ begin
     grant select (
       id, assignment_id, test_id, student_id, status, round,
       started_at, deadline_at, submitted_at, auto_submitted, updated_at,
-      total_score, max_score, percent, dimension_result
+      updated_at
     ) on public.attempts to authenticated;
   end if;
 end $$;
