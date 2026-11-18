@@ -404,3 +404,37 @@ end $$;
 
 revoke all on function public.start_attempt(uuid) from public;
 grant execute on function public.start_attempt(uuid) to authenticated;
+
+
+-- Natijalar ro'yxati: ball maydonlari faqat admin va tegishli psixologga.
+create or replace function public.get_staff_results(p_test_id uuid default null)
+returns table(
+  id uuid, student_id uuid, test_id uuid, status public.attempt_status,
+  percent numeric, total_score numeric, max_score numeric,
+  submitted_at timestamptz, auto_submitted boolean, dimension_result jsonb,
+  group_id uuid, student_full_name text, student_login text,
+  test_title text, test_kind public.test_kind, test_category text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select at.id, at.student_id, at.test_id, at.status,
+         at.percent, at.total_score, at.max_score, at.submitted_at,
+         at.auto_submitted, at.dimension_result, a.group_id,
+         p.full_name, p.login, t.title, t.kind, t.category
+  from public.attempts at
+  join public.assignments a on a.id = at.assignment_id
+  join public.profiles p on p.id = at.student_id
+  join public.tests t on t.id = at.test_id
+  where at.status = 'submitted'
+    and (p_test_id is null or at.test_id = p_test_id)
+    and (
+      public.is_admin()
+      or (public.is_psych() and public.teacher_can_view_results(at.student_id))
+    );
+$$;
+revoke all on function public.get_staff_results(uuid) from public;
+grant execute on function public.get_staff_results(uuid) to authenticated;
+
