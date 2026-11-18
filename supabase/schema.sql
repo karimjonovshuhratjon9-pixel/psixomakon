@@ -763,7 +763,6 @@ grant execute on function public.email_for_login(text)        to anon, authentic
 
 -- Staff (admin/psixolog) natija ustunlarini o'qishi mumkin — ustun GRANT yoki
 -- `to authenticated` bo'lgani uchun bu qator RLS bilan bir xil ishlaydi.
-grant select (total_score, max_score, percent, dimension_result)
-  on public.attempts to authenticated;
+-- Natija ustunlari faqat get_staff_results() RPC orqali beriladi.
 
 grant execute on function public.score_attempt(uuid) to authenticated;
