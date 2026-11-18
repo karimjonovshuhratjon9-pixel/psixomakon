@@ -44,14 +44,25 @@ const one = <T,>(v: T | T[] | null | undefined): T | null =>
 
 export function useResults() {
   return useQuery(async () => {
-    const { data, error } = await supabase
-      .from("attempts")
-      .select(
-        "id,student_id,test_id,status,percent,total_score,max_score,submitted_at,auto_submitted,student:profiles!attempts_student_id_fkey(full_name),test:tests(title,kind,category)",
-      )
-      .eq("status", "submitted")
-      .order("submitted_at", { ascending: false });
-    return { data: data as ResultRow[] | null, error };
+    const { data, error } = await supabase.rpc("get_staff_results");
+    const rows = (data ?? []).map((r) => ({
+      id: r.id,
+      student_id: r.student_id,
+      test_id: r.test_id,
+      status: r.status,
+      percent: r.percent,
+      total_score: r.total_score,
+      max_score: r.max_score,
+      submitted_at: r.submitted_at,
+      auto_submitted: r.auto_submitted,
+      student: { full_name: r.student_full_name },
+      test: {
+        title: r.test_title,
+        kind: r.test_kind,
+        category: r.test_category,
+      },
+    })) as ResultRow[];
+    return { data: rows, error };
   }, []);
 }
 
