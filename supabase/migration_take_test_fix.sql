@@ -79,6 +79,8 @@ grant execute on function public.attempt_results(uuid) to authenticated;
 -- -----------------------------------------------------------------------------
 drop policy if exists attempts_select on public.attempts;
 drop policy if exists attempts_insert on public.attempts;
+drop policy if exists attempts_insert_student on public.attempts;
+drop policy if exists attempts_insert_staff on public.attempts;
 
 create or replace function public.assigned_to_me(p_assignment uuid)
 returns boolean
@@ -330,6 +332,15 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'code', 'test_not_found',
       'message', 'Test topilmadi (o''chirilgan bo''lishi mumkin).');
+  end if;
+
+  if not t.is_active then
+    return jsonb_build_object('ok', false, 'code', 'test_inactive',
+      'message', 'Bu test hozir faol emas.');
+  end if;
+  if a.due_at is not null and a.due_at < now() then
+    return jsonb_build_object('ok', false, 'code', 'assignment_expired',
+      'message', 'Bu testni bajarish muddati tugagan.');
   end if;
 
   -- Mavjud urinish bo'lsa — o'shani qaytaramiz (davom ettirish)
