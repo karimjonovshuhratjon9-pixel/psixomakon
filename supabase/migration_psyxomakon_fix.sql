@@ -290,3 +290,25 @@ end $$;
 grant select, insert, update, delete on public.profiles to authenticated;
 -- Login sahifasi anon sifatida login → email xaritasini o'qiy oladi (RPC orqali)
 grant execute on function public.email_for_login(text) to anon, authenticated;
+
+
+-- Staff uchun test ball kalitlari. O'quvchiga hech qachon ball ustunlari qaytmaydi.
+create or replace function public.get_test_scoring(p_test_id uuid)
+returns table(question_id uuid, option_id uuid, score integer, dim_scores jsonb)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select q.id, o.id, o.score, o.dim_scores
+  from public.questions q
+  join public.options o on o.question_id = q.id
+  where q.test_id = p_test_id
+    and (
+      public.is_admin()
+      or (public.is_psych() and public.can_manage_test(p_test_id))
+    );
+$$;
+revoke all on function public.get_test_scoring(uuid) from public;
+grant execute on function public.get_test_scoring(uuid) to authenticated;
+
