@@ -264,53 +264,12 @@ grant execute on function public.auth_users_diag(text) to anon, authenticated;
 -- limit 20;
 
 -- -----------------------------------------------------------------------------
--- 8. AKKAUNTNI O'ZI TUZATISH (birinchi admin uchun)
---
--- README bo'yicha birinchi admin Dashboard → Add user orqali yaratiladi, lekin
--- `create_admin.sql` bajarilmasa uning profili `student` bo'lib qoladi va
--- admin panelida "Bunga ruxsatingiz yo'q" (403) chiqadi.
---
--- Funksiya xavfsiz:
---   • rol faqat 'admin' yoki 'psychologist' bo'ladi (student'ga qaytarib
---     bo'lmaydi, boshqa rol tanlanmaydi);
---   • blok holati faqat FAOLlashtiriladi (is_blocked = false), bloklash yo'q;
---   • created_by, login, email — O'ZGARMAYDI.
---   • `to_regprocedure` tekshiruvi bilan faqat `authenticated` chaqira oladi.
+-- 8. XAVFSIZLIK: eski self-promotion RPC ni butunlay olib tashlash
+-- Admin roli faqat Supabase SQL Editor / service_role kabi ishonchli kanal
+-- orqali beriladi. Authenticated foydalanuvchi o'z rolini o'zgartira olmaydi.
 -- -----------------------------------------------------------------------------
-create or replace function public.fix_my_account(p_role text default 'admin')
-returns boolean
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid := auth.uid();
-  target public.user_role;
-begin
-  if uid is null then
-    return false;
-  end if;
-
-  target := case lower(trim(coalesce(p_role, '')))
-               when 'admin' then 'admin'::public.user_role
-               when 'psychologist' then 'psychologist'::public.user_role
-               else null
-             end;
-  if target is null then
-    raise exception 'invalid_role';
-  end if;
-
-  -- Faqat o'z qatori; mavjud bo'lmasa false
-  update public.profiles p
-  set role = target,
-      is_blocked = false
-  where p.id = uid;
-
-  return true;
-end $$;
-
-revoke all on function public.fix_my_account(text) from public;
-grant execute on function public.fix_my_account(text) to authenticated;
+revoke all on function public.fix_my_account(text) from public, anon, authenticated;
+drop function if exists public.fix_my_account(text);
 
 -- Excel import / audit jadvallari (migration_user_management.sql) yaratgan
 -- bo'lsa — ular uchun ham huquq kerak, aks holda "permission denied for table".
