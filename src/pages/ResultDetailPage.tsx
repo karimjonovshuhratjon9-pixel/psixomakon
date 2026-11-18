@@ -36,28 +36,41 @@ export function ResultDetailPage() {
     const { data: attempt, error } = await supabase
       .from("attempts")
       .select(
-        "*, student:profiles!attempts_student_id_fkey(full_name,login), test:tests(*), assignment:assignments(group_id)",
+        "id,assignment_id,test_id,student_id,status,round,started_at,deadline_at,submitted_at,auto_submitted,updated_at,student:profiles!attempts_student_id_fkey(full_name,login),test:tests(*),assignment:assignments(group_id)",
       )
       .eq("id", id)
       .single();
     if (error) return { data: null, error };
+
+    const { data: staffResults, error: resultsError } = await supabase.rpc(
+      "get_staff_results",
+      { p_test_id: (attempt as { test_id: string }).test_id },
+    );
+    if (resultsError) return { data: null, error: resultsError };
+    const result = (staffResults ?? []).find((r) => r.id === id);
+    if (!result) return { data: null, error: new Error("Natija topilmadi yoki ko'rish huquqi yo'q.") };
 
     const full = await fetchFullTest((attempt as { test_id: string }).test_id);
     const { data: answers } = await supabase
       .from("answers")
       .select("*")
       .eq("attempt_id", id);
-    const { data: groupAttempts } = await supabase
-      .from("attempts")
-      .select(
-        "id,percent,student_id,student:profiles!attempts_student_id_fkey(full_name)",
-      )
-      .eq("test_id", full.test.id)
-      .eq("status", "submitted");
+    const groupAttempts = (staffResults ?? []).map((r) => ({
+      id: r.id,
+      percent: r.percent,
+      student_id: r.student_id,
+      student: { full_name: r.student_full_name },
+    }));
 
     return {
       data: {
-        attempt: attempt as unknown as Attempt & {
+        attempt: {
+          ...(attempt as unknown as Attempt),
+          total_score: result.total_score,
+          max_score: result.max_score,
+          percent: result.percent,
+          dimension_result: result.dimension_result,
+        } as Attempt & {
           student: { full_name: string; login: string | null };
           test: typeof full.test;
         },
