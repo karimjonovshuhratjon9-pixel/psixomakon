@@ -535,7 +535,10 @@ begin
     raise exception 'not_allowed: testni faqat score_attempt() funksiyasi yakunlaydi'
       using errcode = '42501';
   end if;
-  if new.total_score is distinct from old.total_score
+  if new.assignment_id is distinct from old.assignment_id
+     or new.test_id is distinct from old.test_id
+     or new.student_id is distinct from old.student_id
+     or new.total_score is distinct from old.total_score
      or new.percent is distinct from old.percent
      or new.max_score is distinct from old.max_score
      or new.dimension_result is distinct from old.dimension_result
