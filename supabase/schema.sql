@@ -547,8 +547,7 @@ begin
   if current_setting('ruhiyat.scoring', true) = 'on' then
     return new;
   end if;
-  if public.is_admin()
-     or (public.is_psych() and public.psych_has_student(old.student_id)) then
+  if public.is_admin() then
     return new;
   end if;
   if old.status = 'in_progress' and new.status = 'submitted' then
