@@ -246,7 +246,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
   select q.id, o.id, o.score, o.dim_scores
   from public.questions q
   join public.options o on o.question_id = q.id
@@ -255,7 +255,7 @@ as $
       public.is_admin()
       or (public.is_psych() and public.can_manage_test(p_test_id))
     );
-$;
+$$;
 revoke all on function public.get_test_scoring(uuid) from public;
 grant execute on function public.get_test_scoring(uuid) to authenticated;
 
