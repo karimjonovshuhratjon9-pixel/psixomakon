@@ -208,7 +208,41 @@ create policy attempts_update_student on public.attempts
   );
 
 -- -----------------------------------------------------------------------------
--- 5. ANSWERS — javob saqlash (upsert) faqat aktiv urinishda
+-- Mavjud bazalarda ham urinish identifikatorlarini o'zgartirishni bloklash.
+create or replace function public.attempts_guard()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $
+begin
+  if current_setting('ruhiyat.scoring', true) = 'on' then
+    return new;
+  end if;
+  if public.is_admin()
+     or (public.is_psych() and public.psych_has_student(old.student_id)) then
+    return new;
+  end if;
+  if old.status = 'in_progress' and new.status = 'submitted' then
+    raise exception 'not_allowed: testni faqat score_attempt() funksiyasi yakunlaydi'
+      using errcode = '42501';
+  end if;
+  if new.assignment_id is distinct from old.assignment_id
+     or new.test_id is distinct from old.test_id
+     or new.student_id is distinct from old.student_id
+     or new.total_score is distinct from old.total_score
+     or new.percent is distinct from old.percent
+     or new.max_score is distinct from old.max_score
+     or new.dimension_result is distinct from old.dimension_result
+     or new.started_at is distinct from old.started_at
+     or new.deadline_at is distinct from old.deadline_at then
+    raise exception 'not_allowed: urinish identifikatori va natijalar serverda boshqariladi'
+      using errcode = '42501';
+  end if;
+  return new;
+end $;
+
+-- -- 5. ANSWERS — javob saqlash (upsert) faqat aktiv urinishda
 -- -----------------------------------------------------------------------------
 drop policy if exists answers_select on public.answers;
 create policy answers_select on public.answers
