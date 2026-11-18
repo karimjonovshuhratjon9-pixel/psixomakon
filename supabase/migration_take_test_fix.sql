@@ -235,6 +235,14 @@ create policy answers_write on public.answers
       where at.id = answers.attempt_id
         and at.student_id = auth.uid()
         and at.status = 'in_progress'
+        and exists (
+          select 1 from public.questions q
+          where q.id = answers.question_id and q.test_id = at.test_id
+            and (answers.option_id is null or exists (
+              select 1 from public.options o
+              where o.id = answers.option_id and o.question_id = q.id
+            ))
+        )
     )
   )
   with check (
@@ -243,6 +251,14 @@ create policy answers_write on public.answers
       where at.id = answers.attempt_id
         and at.student_id = auth.uid()
         and at.status = 'in_progress'
+        and exists (
+          select 1 from public.questions q
+          where q.id = answers.question_id and q.test_id = at.test_id
+            and (answers.option_id is null or exists (
+              select 1 from public.options o
+              where o.id = answers.option_id and o.question_id = q.id
+            ))
+        )
     )
   );
 
