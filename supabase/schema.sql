@@ -712,13 +712,7 @@ grant select (
   started_at, deadline_at, submitted_at, auto_submitted, updated_at
 ) on public.attempts to authenticated;
 
--- O'quvchilar faqat o'zingi urinishini yaratishi va status='in_progress' yangilashi mumkin
-create policy attempts_insert_student on public.attempts for insert to authenticated
-  with check (public.is_student_ok() and student_id = auth.uid());
-
--- Admin/psixolog barcha urinishlarni boshqarishi mumkin
-create policy attempts_insert_staff on public.attempts for insert to authenticated
-  with check (public.is_admin() or (public.is_psych() and public.psych_has_student(student_id)));
+-- INSERT faqat yuqoridagi qat'iy attempts_insert siyosati orqali.
 
 -- O'quvchilar faqat o'zingi holatini yangilashi mumkin (faqat in_progress)
 create policy attempts_update_student on public.attempts for update to authenticated
