@@ -405,8 +405,7 @@ begin
     revoke select on table public.attempts from authenticated;
     grant select (
       id, assignment_id, test_id, student_id, status, round,
-      started_at, deadline_at, submitted_at, auto_submitted, updated_at,
-      updated_at
+      started_at, deadline_at, submitted_at, auto_submitted, updated_at
     ) on public.attempts to authenticated;
   end if;
 end $$;
